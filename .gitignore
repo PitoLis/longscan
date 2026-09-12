@@ -22,3 +22,8 @@ __pycache__/
 tg/tg.json
 tg/tg.json.disabled
 .env
+
+# 编辑器(交换文件可能含秘密明文)
+*.swp
+*.swo
+*~
