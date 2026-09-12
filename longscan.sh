@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # LONG 榜单监控一键启动
-# 用法: longscan [start|stop|restart|status|log]   (默认 start)
+# 用法: longscan [start|stop|restart|status|log|tg on|tg off]   (默认 start;--help 看完整说明)
 # 安装: ln -sf /SSD/projects/longscan/longscan.sh ~/.local/bin/longscan
 set -euo pipefail
 
@@ -98,11 +98,109 @@ status() {
     fi
 }
 
+# ---------- TG 频道推送开关 ----------
+# 服务只在启动时读取一次配置(server.py Notifier.__init__),开关切换后需 restart 生效
+TG_CONF=tg/tg.json
+TG_OFF=tg/tg.json.disabled
+
+tg_summary() {
+    local f=$TG_CONF
+    [[ -f $f ]] || f=$TG_OFF
+    [[ -f $f ]] || return 0
+    python3 - "$f" <<'PY'
+import json, sys
+cfg = json.load(open(sys.argv[1]))
+t = str(cfg.get("bot_token", ""))
+bid, _, sec = t.partition(":")
+print(f"   bot_token: {bid}:{sec[:3]}…  chat_id: {cfg.get('chat_id', '(缺)')}  proxy: {cfg.get('proxy') or '直连'}")
+PY
+}
+
+tg_status() {
+    if [[ -f $TG_CONF ]]; then
+        echo "🟢 TG 频道推送:开启 ($TG_CONF)"
+    elif [[ -f $TG_OFF ]]; then
+        echo "⚪ TG 频道推送:关闭 (配置在 $TG_OFF,执行 longscan tg on 开启)"
+    else
+        echo "⚪ TG 频道推送:未配置 (模板: tg/tg.example.json)"
+    fi
+    tg_summary
+    [[ -n ${TG_BOT_TOKEN:-} && -n ${TG_CHAT_ID:-} ]] && \
+        echo "   ⚠️ 环境变量 TG_BOT_TOKEN/TG_CHAT_ID 已设置,忽略文件开关仍会推送"
+}
+
+tg_on() {
+    if [[ -f $TG_CONF ]]; then
+        echo "✅ 已是开启状态"
+    elif [[ -f $TG_OFF ]]; then
+        mv "$TG_OFF" "$TG_CONF"
+        echo "✅ TG 推送已开启 ($TG_OFF → $TG_CONF)"
+    else
+        echo "❌ 未找到配置,先从 tg/tg.example.json 复制一份 $TG_CONF 填好 token"
+        return 1
+    fi
+    tg_summary
+    restart_hint
+}
+
+tg_off() {
+    if [[ -f $TG_CONF ]]; then
+        mv "$TG_CONF" "$TG_OFF"
+        echo "✅ TG 推送已关闭 ($TG_CONF → $TG_OFF)"
+        tg_summary
+    elif [[ -f $TG_OFF ]]; then
+        echo "✅ 已是关闭状态"
+    else
+        echo "ℹ️  本来就未配置"
+    fi
+    [[ -n ${TG_BOT_TOKEN:-} && -n ${TG_CHAT_ID:-} ]] && \
+        echo "   ⚠️ 环境变量 TG_BOT_TOKEN/TG_CHAT_ID 仍在,推送不会真正关闭"
+    restart_hint
+}
+
+restart_hint() {
+    local pid
+    pid=$(running_pid)
+    [[ -n $pid ]] && echo "ℹ️  服务启动时读取配置,执行 longscan restart 生效"
+}
+
+usage() {
+    cat <<'EOF'
+LONG 榜单监控
+
+用法: longscan <命令>   (无参数 = start)
+
+服务:
+  start        启动服务(缺失依赖自动安装,后台运行)
+  stop         停止服务
+  restart      重启服务
+  status       运行状态
+  log          跟踪日志(Ctrl-C 退出)
+
+TG 频道推送:
+  tg           查看推送状态(token 打码显示)
+  tg on        开启推送 (tg/tg.json.disabled → tg/tg.json)
+  tg off       关闭推送 (tg/tg.json → tg/tg.json.disabled)
+
+说明:
+  · 服务只在启动时读取一次 TG 配置,开关后需 longscan restart 生效
+  · 配置模板: tg/tg.example.json,或用环境变量 TG_BOT_TOKEN/TG_CHAT_ID/TG_PROXY
+EOF
+}
+
 case "${1:-start}" in
     start)   start ;;
     stop)    stop ;;
     restart) stop; start ;;
     status)  status ;;
     log)     tail -n 100 -f "$LOG" ;;
-    *) echo "用法: longscan [start|stop|restart|status|log]   (默认 start)"; exit 1 ;;
+    tg)
+        case "${2:-}" in
+            "")  tg_status ;;
+            on)  tg_on ;;
+            off) tg_off ;;
+            *)   echo "用法: longscan tg [on|off]"; exit 1 ;;
+        esac ;;
+    -h|--help|help) usage ;;
+    *) usage; exit 1 ;;
 esac
