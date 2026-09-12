@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>LONG 股票 × Meme 榜单</title>
+<style>
+:root{
+  --bg:#0a0a0b;--panel:#131316;--panel2:#1a1a1f;--line:#26262c;
+  --fg:#e8e8ea;--dim:#8b8b94;--green:#22c55e;--red:#ef4444;--blue:#3b82f6;--gold:#f59e0b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.45 -apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}
+header{position:sticky;top:0;z-index:10;background:rgba(10,10,11,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:16px;margin:0}
+h1 span{color:var(--gold)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px}
+.dot.bad{background:var(--red)}
+#meta{color:var(--dim);font-size:12px;margin-left:auto}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select,input{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:5px 9px;font-size:12px;outline:none}
+input{width:160px}
+#bell{cursor:pointer;font-size:15px;opacity:.5;user-select:none;line-height:1}
+#bell.on{opacity:1}
+#histWrap{position:relative;cursor:pointer;font-size:15px;opacity:.75;user-select:none;line-height:1}
+#histWrap:hover,#histWrap.open{opacity:1}
+#histBadge{position:absolute;top:-7px;right:-9px;background:var(--gold);color:#04150a;
+  font-size:9px;font-weight:700;border-radius:8px;padding:0 4px;min-width:14px;text-align:center;line-height:13px}
+#histPanel{position:fixed;top:52px;right:14px;z-index:98;width:340px;max-width:calc(100vw - 28px);
+  max-height:min(430px,62vh);background:var(--panel2);border:1px solid var(--gold);border-radius:12px;
+  box-shadow:0 8px 30px rgba(0,0,0,.55);display:none;flex-direction:column;overflow:hidden}
+#histPanel.open{display:flex;animation:pin .18s ease-out}
+@keyframes pin{from{transform:translateY(-8px);opacity:0}to{transform:none;opacity:1}}
+#histPanel .ph{padding:9px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;
+  gap:6px;font-size:12px;color:var(--dim);flex-shrink:0}
+#histPanel .ph b{color:var(--fg)}
+#histPanel .pclr{margin-left:auto;cursor:pointer;font-size:11px;color:var(--dim);
+  padding:2px 8px;border-radius:6px;flex-shrink:0}
+#histPanel .pclr:hover{color:var(--fg);background:#26262c}
+#histList{overflow-y:auto;padding:6px;scrollbar-width:thin}
+.hr{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;font-size:12px}
+.hr:hover{background:#17171d}
+.hr img{width:22px;height:22px;border-radius:50%;background:#222;object-fit:cover;flex-shrink:0}
+.hr .hm{min-width:0;flex:1}
+.hr .hm b{font-size:12.5px}
+.hr .hm i{font-style:normal;color:var(--dim);font-size:10.5px;display:block;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hr .ht{flex-shrink:0;text-align:right}
+.hr .ht .pct{font-weight:700;color:var(--green);font-size:12px}
+.hr .ht .tm{display:block;color:var(--dim);font-size:10px;font-variant-numeric:tabular-nums}
+.hr.fresh{animation:fn 2s ease-out}      /* 刚触发的通知进面板时金光一闪 */
+.hr-empty{color:var(--dim);text-align:center;padding:30px 0;font-size:12px}
+.bdg{display:inline-block;margin-left:5px;padding:0 5px;border-radius:6px;font-size:10px;
+  font-weight:700;vertical-align:1px;white-space:nowrap}
+.bdg.chase{color:#ffb84d;border:1px solid #ffb84d55;background:#ffb84d14}   /* ⚠️追高极顶 */
+.bdg.hi{color:#ff5d5d;border:1px solid #ff5d5d55;background:#ff5d5d14}      /* 🔴高置信 */
+.bdg.rep{color:var(--dim);border:1px solid #6666;background:#6661}          /* ↻当日重复 */
+
+#board{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;padding:12px 12px 40px}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:250px;flex:0 0 auto;max-height:calc(100vh - 96px);display:flex;flex-direction:column}
+.col-head{padding:10px 12px;background:var(--panel2);border-bottom:1px solid var(--line);border-radius:12px 12px 0 0;display:flex;align-items:center;gap:8px}
+.col-head img{width:22px;height:22px;border-radius:50%;background:#222;object-fit:cover}
+.col-head .s{font-weight:700;font-size:14px}
+.col-head .zh{font-size:11px;color:var(--fg);opacity:.85}
+.col-head .n{color:var(--dim);font-size:10px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{font-size:10px;padding:1px 6px;border-radius:10px;background:#2a2a33;color:var(--dim);flex-shrink:0}
+.badge.stock{background:#3d2f0e;color:var(--gold)}
+.badge.asset{background:#123049;color:var(--blue)}
+.col-stats{padding:5px 12px;font-size:10px;color:var(--dim);border-bottom:1px solid var(--line);display:flex;gap:10px}
+.col-stats b{color:var(--fg);font-weight:600}
+.col-news{padding:5px 12px 6px;border-bottom:1px solid var(--line);font-size:11px;color:var(--dim);cursor:pointer;display:flex;gap:6px;align-items:baseline}
+.col-news .nt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg);opacity:.88}
+.col-news:hover .nt{color:var(--blue)}
+.col-news .na{flex-shrink:0;font-size:10px}
+.news-list{display:none;padding:4px 12px 6px;border-bottom:1px solid var(--line)}
+.news-list a{display:block;font-size:11px;color:var(--dim);padding:3px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.news-list a:hover{color:var(--blue)}
+.news-list a b{color:var(--gold);font-weight:600;font-size:10px;margin-right:2px}
+.flash-news{animation:fn 2s ease-out}
+@keyframes fn{0%{background:rgba(245,158,11,.28)}100%{background:transparent}}
+.list{overflow-y:auto;padding:4px 6px 8px;scrollbar-width:thin}
+.more{display:block;width:100%;text-align:center;background:none;border:none;border-radius:8px;
+  color:var(--dim);font-size:11px;padding:6px 0;cursor:pointer}
+.more:hover{background:#17171d;color:var(--fg)}
+a{color:inherit;text-decoration:none}
+.item{display:flex;align-items:center;gap:6px;padding:6px 6px;border-radius:8px}
+.item:hover{background:#17171d}
+.item .go{display:flex;align-items:center;gap:8px;min-width:0;flex:1;color:inherit}
+.item img{width:24px;height:24px;border-radius:50%;object-fit:cover;background:#222;flex-shrink:0}
+.item .okx{flex-shrink:0;display:flex;align-items:center;align-self:flex-start;margin-top:-2px;color:var(--dim);opacity:.7;padding:4px 2px;border-radius:6px}
+.item .okx:hover{opacity:1;color:var(--fg);background:#22222a}
+.item .m{min-width:0;flex:1}
+.item .row1{display:flex;align-items:center;gap:5px}
+.item .sym{font-weight:600;font-size:12.5px}
+.item .mc{margin-left:auto;font-weight:600;font-size:12.5px}
+.item .row2{display:flex;font-size:10.5px;color:var(--dim)}
+.item .vl{margin-left:auto}
+.item.inc .sym{color:var(--blue)}
+.clock{font-size:11px;margin-right:2px}
+.new{font-size:9px;background:var(--green);color:#04150a;border-radius:3px;padding:0 4px;font-weight:700}
+/* 方案C · 闪光+箭头(参考币安行情列表):行闪光 + ▲▼浮入淡出,市值染色保持到下次变动 */
+.flash-up{animation:fu 1s ease-out}
+.flash-down{animation:fd 1s ease-out}
+@keyframes fu{from{background:rgba(34,197,94,.24)}to{background:transparent}}
+@keyframes fd{from{background:rgba(239,68,68,.24)}to{background:transparent}}
+@keyframes arrowIn{0%{opacity:0;transform:translateY(4px)}25%{opacity:1;transform:translateY(0)}70%{opacity:1}100%{opacity:0;transform:translateY(-3px)}}
+.arw{width:11px;flex-shrink:0;font-size:9px;opacity:0}
+.flash-up .arw{animation:arrowIn 1.3s ease-out;color:var(--green)}
+.flash-down .arw{animation:arrowIn 1.3s ease-out;color:var(--red)}
+.mc.up{color:var(--green)}
+.mc.dn{color:var(--red)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+#empty{color:var(--dim);text-align:center;padding:60px 0;width:100%}
+
+#toasts{position:fixed;right:14px;bottom:14px;z-index:99;display:flex;flex-direction:column;gap:8px;max-width:320px}
+.toast{background:var(--panel2);border:1px solid var(--green);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.5);animation:tin .3s ease-out}
+.toast.rise{border-color:var(--gold)}
+.toast img{width:28px;height:28px;border-radius:50%;background:#222}
+.toast .t{font-size:12px;color:var(--dim)}
+.toast .t b{color:var(--fg);font-size:13px}
+@keyframes tin{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+</style>
+</head>
+<body>
+<header>
+  <h1><span>LONG</span> 股票 × Meme 榜单</h1>
+  <div class="controls">
+    <input id="q" placeholder="搜索 meme / 底池…"/>
+    <select id="sort">
+      <option value="vol">按 24h 交易量排序</option>
+      <option value="count">按 meme 数量排序</option>
+      <option value="mcap">按最高市值排序</option>
+    </select>
+    <select id="stage">
+      <option value="">全部阶段</option>
+      <option value="new">新创建 · 1小时内</option>
+      <option value="open">已开盘 · 有成交</option>
+    </select>
+    <span id="bell" title="连续上涨通知:弹窗 + 提示音,点击开/关">🔕</span>
+    <span id="histWrap" title="今日连涨通知历史(只保留当天)">🕘<span id="histBadge" hidden></span></span>
+  </div>
+  <div id="meta"><span class="dot" id="dot"></span><span id="status">加载中…</span></div>
+</header>
+<main>
+<div id="board"><div id="empty">正在加载榜单…</div></div>
+</main>
+<div id="toasts"></div>
+<div id="histPanel">
+  <div class="ph">📈 今日连涨通知 <b id="histCount">0</b> 条 · 只保留当天
+    <span class="pclr" id="histClose">✕ 收起</span></div>
+  <div id="histList"><div class="hr-empty">暂无通知</div></div>
+</div>
+
+<script>
+const fmtUsd = v => v==null ? "—" :
+  v>=1e9 ? "$"+(v/1e9).toFixed(2)+"B" :
+  v>=1e6 ? "$"+(v/1e6).toFixed(2)+"M" :
+  v>=1e3 ? "$"+(v/1e3).toFixed(1)+"K" : "$"+v.toFixed(2);
+const ago = iso => { const s=(Date.now()-new Date(iso))/1e3;
+  return s<60?Math.floor(s)+"秒":s<3600?Math.floor(s/60)+"分":s<86400?Math.floor(s/3600)+"时":Math.floor(s/86400)+"天"; };
+const esc = s => (s??"").toString().replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]));
+// 图标走本地缓存代理:未就绪时先隐藏,由 sweepIcons 周期性重试直到就绪或确认缺失
+const iconSrc = (addr,u) => `/icon?addr=${addr}&u=${encodeURIComponent(u||"")}`;
+function markMiss(el){
+  el.dataset.miss = "1";
+  el.style.visibility = "hidden";
+}
+function sweepIcons(){
+  document.querySelectorAll("img[data-miss]").forEach(el=>{
+    const t = +(el.dataset.try||0);
+    if(t>40){ el.dataset.miss="done"; return; }   // ~8分钟后放弃(官方无图)
+    el.dataset.try = t+1;
+    el.onload = ()=>{ delete el.dataset.miss; el.style.visibility=""; };
+    const base = el.src.split("_r=")[0];
+    el.src = base + (base.includes("?")?"&":"?") + "_r=" + (t+1);
+  });
+}
+setInterval(sweepIcons, 12000);
+const kindBadge = k => k==="stock" ? '<span class="badge stock">股票</span>'
+  : k==="etf" ? '<span class="badge asset">ETF</span>'
+  : k==="asset" ? '<span class="badge asset">资产</span>'
+  : k==="native" ? '<span class="badge">ETH</span>'
+  : k==="stable" ? '<span class="badge">稳定币</span>'
+  : '<span class="badge">代币</span>';
+
+let lastPrice = {};
+let lastDir = {};     // address -> "up"|"dn",方向色保持到下次变动(不随无关重渲染丢失)
+let board = null;
+let seen = null;
+let lastJson = "";   // 数据未变化时跳过重渲染,3000+条目时明显省 CPU
+const expanded = new Set();  // 已"展开全部"的底池,重渲染后恢复
+const newsOpen = new Set();  // 已展开新闻面板的底池
+let newsSeen = null;         // 已见过的新闻 url,用于检测新新闻
+const newsFlash = new Set(); // 本轮有新新闻的底池,渲染时高亮一次
+
+function markNews(stocks){
+  if(newsSeen===null){
+    newsSeen = new Set();
+    stocks.forEach(s=>(s.news||[]).forEach(n=>newsSeen.add(n.url)));
+    return;
+  }
+  stocks.forEach(s=>{
+    const top=(s.news||[])[0];
+    if(top && !newsSeen.has(top.url)) newsFlash.add(s.numeraire);
+    (s.news||[]).forEach(n=>newsSeen.add(n.url));
+  });
+}
+
+function notifyNew(memes){
+  if(seen===null){ seen = new Set(memes.map(m=>m.address)); return; }
+  const fresh = memes.filter(m=>!seen.has(m.address));
+  fresh.forEach(m=>seen.add(m.address));
+  const box = document.getElementById("toasts");
+  fresh.slice(0,5).forEach(m=>{
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.innerHTML = `<img src="${iconSrc(m.address, m.image||"")}" onerror="markMiss(this)">
+      <div class="t"><b>🚀 新 meme 上线: ${esc(m.symbol)}</b><br>
+      底池 ${esc(m.stock)} · 市值 ${fmtUsd(m.market_cap)}<br>
+      <a href="${esc(m.url)}" target="_blank" style="color:var(--blue)">在 LONG 查看 →</a></div>`;
+    box.appendChild(el);
+    setTimeout(()=>{ el.style.opacity="0"; el.style.transition="opacity .4s"; setTimeout(()=>el.remove(),400); }, 12000);
+  });
+}
+
+// ---- 连续上涨通知:📈 toast 常驻;🔔 开启后追加系统通知 + 提示音 ----
+const bell = document.getElementById("bell");
+const bellOn = () => localStorage.riseNotify === "1";
+function paintBell(){ bell.textContent = bellOn()?"🔔":"🔕"; bell.classList.toggle("on",bellOn()); }
+bell.onclick = async ()=>{
+  if(!bellOn() && "Notification" in window && Notification.permission === "default")
+    await Notification.requestPermission();
+  localStorage.riseNotify = bellOn() ? "" : "1";
+  paintBell();
+  if(bellOn()) beep();
+};
+paintBell();
+
+let actx = null;
+
+// ---- 今日连涨通知历史面板:后端按天持久化,随 /api/board 的 rising_hist 下发 ----
+const histWrap = document.getElementById("histWrap");
+const histPanel = document.getElementById("histPanel");
+const histBadge = document.getElementById("histBadge");
+let histOpen = false, lastHistJson = "";
+function setHist(open){
+  histOpen = open;
+  histPanel.classList.toggle("open", open);
+  histWrap.classList.toggle("open", open);
+  if(open) histBadge.hidden = true;        // 打开即消角标
+}
+histWrap.onclick = ()=> setHist(!histOpen);
+document.getElementById("histClose").onclick = ()=> setHist(false);
+document.addEventListener("click", e=>{    // 点面板外收起
+  if(histOpen && !e.target.closest("#histPanel") && !e.target.closest("#histWrap")) setHist(false);
+});
+function renderHist(items){
+  document.getElementById("histCount").textContent = items.length;
+  histBadge.textContent = items.length > 99 ? "99+" : items.length;
+  histBadge.hidden = histOpen || !items.length;
+  const j = JSON.stringify(items);
+  if(j === lastHistJson) return;           // 无变化不重渲染,避免闪烁动画重放
+  lastHistJson = j;
+  const list = document.getElementById("histList");
+  const nowS = Date.now()/1000;
+  list.innerHTML = items.length ? items.map(e=>{
+    const t = new Date(e.ts*1000);
+    const tm = [t.getHours(),t.getMinutes(),t.getSeconds()].map(x=>String(x).padStart(2,"0")).join(":");
+    return `<a class="hr${nowS-e.ts<20?" fresh":""}" href="${esc(e.url)}" target="_blank" rel="noopener"
+      title="${esc(e.name)} · 连续${Math.round(e.span/60)}分钟上涨">
+      <img src="${iconSrc(e.address, e.image||"")}" onerror="markMiss(this)">
+      <span class="hm"><b>${esc(e.symbol)}</b>${riseBadges(e.tags)}<i>${esc(e.stock)} · 市值 ${fmtUsd(e.market_cap)} · 量 ${fmtUsd(e.volume_24h)}</i></span>
+      <span class="ht"><span class="pct">+${(e.gain*100).toFixed(1)}%</span><span class="tm">${tm}</span></span>
+    </a>`;
+  }).join("") : '<div class="hr-empty">今天还没有连涨通知</div>';
+}
+function beep(){
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    o.frequency.value = 880; g.gain.value = .07;
+    o.start();
+    g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime+.5);
+    o.stop(actx.currentTime+.5);
+  }catch(e){}
+}
+
+let riseSeen = null;
+function riseBadges(tags){                    // 信号分层标识:⚠️追高极顶 🔴高置信 ↻当日重复
+  const t = tags || "";
+  let s = "";
+  if(t.includes("chase")) s += '<span class="bdg chase">⚠️追高</span>';
+  if(t.includes("hi")) s += '<span class="bdg hi">🔴高置信</span>';
+  if(t.includes("repeat")) s += '<span class="bdg rep">↻今日重复</span>';
+  return s ? " " + s : "";
+}
+function notifyRising(events){
+  const key = e => e.address+":"+e.ts;
+  if(riseSeen===null){ riseSeen = new Set(events.map(key)); return; }  // 首轮只记录不打扰
+  const fresh = events.filter(e=>!riseSeen.has(key(e)));
+  fresh.forEach(e=>riseSeen.add(key(e)));
+  const box = document.getElementById("toasts");
+  fresh.slice(0,5).forEach(e=>{
+    const el = document.createElement("div");
+    el.className = "toast rise";
+    el.innerHTML = `<img src="${iconSrc(e.address, e.image||"")}" onerror="markMiss(this)">
+      <div class="t"><b>📈 连续${Math.round(e.span/60)}分钟上涨: ${esc(e.symbol)} +${(e.gain*100).toFixed(1)}%${riseBadges(e.tags)}</b><br>
+      底池 ${esc(e.stock)} · 市值 ${fmtUsd(e.market_cap)} · 量 ${fmtUsd(e.volume_24h)}<br>
+      <a href="${esc(e.url)}" target="_blank" style="color:var(--blue)">在 LONG 查看 →</a></div>`;
+    box.appendChild(el);
+    setTimeout(()=>{ el.style.opacity="0"; el.style.transition="opacity .4s"; setTimeout(()=>el.remove(),400); }, 15000);
+  });
+  if(fresh.length && bellOn()){
+    beep();
+    if("Notification" in window && Notification.permission === "granted"){
+      const e = fresh[0];
+      new Notification(`📈 ${e.symbol} 连涨${Math.round(e.span/60)}分钟 +${(e.gain*100).toFixed(1)}%`,
+        { body: `底池 ${e.stock} · 市值 ${fmtUsd(e.market_cap)}`, tag: "long-rise-"+e.address });
+    }
+  }
+}
+
+async function refresh(){
+  try{
+    const r = await fetch("/api/board");
+    board = await r.json();
+    document.getElementById("dot").className = "dot"+(board.ok?"":" bad");
+    document.getElementById("status").textContent =
+      board.ok ? "实时 · "+board.count+" 个 meme · 新闻 "+(board.news_count??"–")+" 条 · 涨跌采样 "+(board.rise_watch??"–")+" · 更新于 "+board.updated_at
+               : (board.count?"同步中("+board.count+")…":"加载中…");
+    markNews(board.stocks || []);
+    notifyNew(board.latest || []);
+    notifyRising(board.rising || []);
+    renderHist(board.rising_hist || []);
+    const j = JSON.stringify(board);
+    if(j!==lastJson){ lastJson=j; render(); }
+  }catch(e){
+    document.getElementById("dot").className = "dot bad";
+    document.getElementById("status").textContent = "连接失败："+e.message;
+  }
+}
+
+const STAGE_TXT = {new:"🆕 1小时内上线", open:"已开盘", graduation:"已毕业"};
+// meme 合约都在 Robinhood Chain 上,OKX 代币交易页按地址拼接
+const OKX_URL = addr => "https://web3.okx.com/zh-hans/token/robinhood-chain/" + addr;
+const OKX_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">'
+  + '<path d="M2 2h6v6H2zM16 2h6v6h-6zM9 9h6v6H9zM2 16h6v6H2zM16 16h6v6h-6z"/></svg>';
+function itemHtml(m){
+  const isNew = (Date.now()-new Date(m.created_at))<3600e3;
+  let flash = "";
+  if(lastPrice[m.address]!=null && m.price!=null && lastPrice[m.address]!==m.price){
+    const up = m.price>lastPrice[m.address];
+    flash = up?"flash-up":"flash-down";
+    lastDir[m.address] = up?"up":"dn";
+  }
+  lastPrice[m.address]=m.price;
+  const dir = lastDir[m.address]||"";
+  const img = `<img src="${iconSrc(m.address, m.image||"")}" onerror="markMiss(this)">`;
+  const incoming = m.stage==="new";
+  return `<div class="item ${flash}${incoming?" inc":""}">
+    <a class="go" href="${esc(m.url)}" target="_blank" rel="noopener"
+      title="${esc(m.name)} · ${STAGE_TXT[m.stage]||m.stage} · ${ago(m.created_at)}前创建">
+      ${img}
+      <span class="m">
+        <span class="row1">${incoming?'<span class="clock">⏳</span>':""}<span class="sym">${esc(m.symbol)}</span>${isNew?'<span class="new">NEW</span>':''}<span class="arw">${dir==="up"?"▲":dir==="dn"?"▼":""}</span><span class="mc ${dir}">${fmtUsd(m.market_cap)}</span></span>
+        <span class="row2"><span>量 ${fmtUsd(m.volume_24h)}</span></span>
+      </span>
+    </a>
+    <a class="okx" href="${OKX_URL(m.address)}" target="_blank" rel="noopener" title="在 OKX 交易 ${esc(m.symbol)}">${OKX_ICON}</a>
+  </div>`;
+}
+
+function render(){
+  const main = document.getElementById("board");
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const sort = document.getElementById("sort").value;
+  const stage = document.getElementById("stage").value;
+  if(!board || !board.stocks){ main.innerHTML='<div id="empty">暂无数据</div>'; return; }
+
+  let stocks = board.stocks.filter(s=>s.meme_count>0);
+  if(stage) stocks = stocks.map(s=>({...s,memes:s.memes.filter(m=>
+        m.stage===stage && (stage!=="open" || (m.volume_24h||0)>0))})).filter(s=>s.memes.length);
+  if(q) stocks = stocks.map(s=>({...s,memes:s.memes.filter(m=>
+        (m.symbol+" "+m.name).toLowerCase().includes(q))}))
+        .filter(s=>s.memes.length||s.symbol.toLowerCase().includes(q)||s.name.toLowerCase().includes(q));
+  stocks.sort((a,b)=> sort==="count"?b.meme_count-a.meme_count
+                  : sort==="mcap"?b.top_market_cap-a.top_market_cap
+                  : b.total_volume_24h-a.total_volume_24h);
+
+  main.innerHTML = stocks.length ? stocks.map(s=>{
+    const memes = [...s.memes].sort(stage==="new"
+      ? (a,b)=>new Date(b.created_at)-new Date(a.created_at)      // 新创建按时间倒序
+      : (a,b)=>(b.market_cap??0)-(a.market_cap??0)).map(m=>({...m, stock:s.symbol}));
+    const headImg = s.image ? `<img src="${iconSrc(s.numeraire, s.image)}" onerror="markMiss(this)">` : "";
+    const more = s.hidden_count>0
+      ? `<button class="more" data-n="${esc(s.numeraire)}" onclick="expandAll(this)">展开全部 ${s.meme_count} 个 ↓</button>`
+      : "";
+    const newsHtml = s.news && s.news.length ? `
+      <div class="col-news${newsFlash.has(s.numeraire)?" flash-news":""}" data-n="${esc(s.numeraire)}"
+           onclick="toggleNews(this)" title="点击展开/收起 ${s.news.length} 条最新新闻">
+        <span>📰</span><span class="nt">${esc(s.news[0].title)}</span>
+        <span class="na">${ago(s.news[0].published_at)}前 ▾</span>
+      </div>
+      <div class="news-list"${newsOpen.has(s.numeraire)?' style="display:block"':''}>
+        ${s.news.map(n=>`<a href="${esc(n.url)}" target="_blank" rel="noopener"><b>${ago(n.published_at)}前</b>${esc(n.title)} · ${esc(n.source)}</a>`).join("")}
+      </div>` : "";
+    return `<section class="col">
+      <div class="col-head" title="${esc(s.name)}${s.biz?" · "+esc(s.biz):""}">
+        ${headImg}
+        <span><span class="s">${esc(s.symbol)}</span>${s.zh?` <span class="zh">${esc(s.zh)}</span>`:""}<br>
+        <span class="n">${esc(s.biz || s.name)}</span></span>
+        ${kindBadge(s.kind)}
+      </div>
+      <div class="col-stats"><span>meme <b>${s.meme_count}</b></span><span>24h量 <b>${fmtUsd(s.total_volume_24h)}</b></span></div>
+      ${newsHtml}
+      <div class="list" data-n="${esc(s.numeraire)}">${memes.map(itemHtml).join("")}${more}</div>
+    </section>`;}).join("")
+    : '<div id="empty">没有匹配的结果</div>';
+  newsFlash.clear();   // 高亮只在本次渲染生效一次
+  // 恢复上一轮已展开的列
+  document.querySelectorAll(".list").forEach(l=>{ if(expanded.has(l.dataset.n)) loadFull(l); });
+}
+
+function toggleNews(el){
+  const list = el.nextElementSibling;
+  const on = list.style.display === "block";
+  list.style.display = on ? "" : "block";
+  if(on) newsOpen.delete(el.dataset.n); else newsOpen.add(el.dataset.n);
+}
+
+async function expandAll(btn){
+  const list = btn.parentElement;
+  expanded.add(list.dataset.n);
+  btn.textContent = "加载中…"; btn.disabled = true;
+  await loadFull(list);
+}
+
+async function loadFull(list){
+  try{
+    const r = await fetch("/api/memes?n="+encodeURIComponent(list.dataset.n));
+    const memes = await r.json();
+    list.innerHTML = memes.map(itemHtml).join("");
+  }catch(e){
+    list.innerHTML = '<button class="more" onclick="loadFull(this.parentElement)">加载失败,点击重试</button>';
+  }
+}
+
+document.getElementById("q").addEventListener("input",render);
+document.getElementById("sort").addEventListener("change",render);
+document.getElementById("stage").addEventListener("change",render);
+refresh();
+setInterval(refresh, 10000);
+setInterval(()=>{ if(board) render(); }, 30000);
+</script>
+</body>
+</html>

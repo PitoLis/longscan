@@ -1,0 +1,308 @@
+[
+ {
+  "symbol": "USDG",
+  "name": "Global Dollar",
+  "kind": "stable",
+  "address": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168"
+ },
+ {
+  "symbol": "AI",
+  "name": "ArtificialINU",
+  "kind": "token",
+  "address": "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18"
+ },
+ {
+  "symbol": "NVDAx3L",
+  "name": "NVDA 3x Long",
+  "kind": "token",
+  "address": "0xF51fb54DE60f6e16252E852A5Ed0E60B8307606A"
+ },
+ {
+  "symbol": "AAPL",
+  "name": "Apple",
+  "kind": "stock",
+  "address": "0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9"
+ },
+ {
+  "symbol": "AMC",
+  "name": "AMC Entertainment",
+  "kind": "stock",
+  "address": "0x05a3d1Cd21d0C88145E82600E62e7E496e0F222B"
+ },
+ {
+  "symbol": "AMD",
+  "name": "Advanced Micro Devices",
+  "kind": "stock",
+  "address": "0x86923f96303D656E4aa86D9d42D1e57ad2023fdC"
+ },
+ {
+  "symbol": "AMZN",
+  "name": "Amazon",
+  "kind": "stock",
+  "address": "0x12f190a9F9d7D37a250758b26824B97CE941bF54"
+ },
+ {
+  "symbol": "ASML",
+  "name": "ASML Holding",
+  "kind": "stock",
+  "address": "0x47F93d52cBeC7C6D2CfC080e154002370a60dAEA"
+ },
+ {
+  "symbol": "BA",
+  "name": "Boeing",
+  "kind": "stock",
+  "address": "0x4D21483a44Bf67a86b77E3dA301411880797D452"
+ },
+ {
+  "symbol": "BABA",
+  "name": "Alibaba",
+  "kind": "stock",
+  "address": "0xad25Ac6C84D497db898fa1E8387bf6Af3532a1c4"
+ },
+ {
+  "symbol": "BB",
+  "name": "BlackBerry",
+  "kind": "stock",
+  "address": "0x48E39E56aCdbA37b09020C0b734A613C9a2f100A"
+ },
+ {
+  "symbol": "BE",
+  "name": "Bloom Energy",
+  "kind": "stock",
+  "address": "0x822CC93fFD030293E9842c30BBD678F530701867"
+ },
+ {
+  "symbol": "CCL",
+  "name": "Carnival",
+  "kind": "stock",
+  "address": "0x9651342CeA770aE9a2969Ba2A52611523146aef9"
+ },
+ {
+  "symbol": "COIN",
+  "name": "Coinbase",
+  "kind": "stock",
+  "address": "0x6330D8C3178a418788dF01a47479c0ce7CCF450b"
+ },
+ {
+  "symbol": "COST",
+  "name": "Costco",
+  "kind": "stock",
+  "address": "0x4EA005168D7F09a7A0Ba9D1DEf21a479950E44C2"
+ },
+ {
+  "symbol": "CRCL",
+  "name": "Circle",
+  "kind": "stock",
+  "address": "0xdF0992E440dD0be65BD8439b609d6D4366bf1CB5"
+ },
+ {
+  "symbol": "CRWV",
+  "name": "CoreWeave",
+  "kind": "stock",
+  "address": "0x5f10A1C971B69e47e059e1dC91901B59b3fB49C3"
+ },
+ {
+  "symbol": "DELL",
+  "name": "Dell",
+  "kind": "stock",
+  "address": "0x941AE714EC6D8130c7B75d67160Ca08f1e7d11Dd"
+ },
+ {
+  "symbol": "DJT",
+  "name": "Trump Media",
+  "kind": "stock",
+  "address": "0x1D11f0496982706C5e14A514D4E79F2e6BdE4516"
+ },
+ {
+  "symbol": "FIG",
+  "name": "Figma",
+  "kind": "stock",
+  "address": "0x41F4267525a8AFf329540eF24fD83d9044758B33"
+ },
+ {
+  "symbol": "GME",
+  "name": "GameStop",
+  "kind": "stock",
+  "address": "0x1b0E319c6A659F002271B69dB8A7df2F911c153E"
+ },
+ {
+  "symbol": "GOOGL",
+  "name": "Alphabet",
+  "kind": "stock",
+  "address": "0x2e0847E8910a9732eB3fb1bb4b70a580ADAD4FE3"
+ },
+ {
+  "symbol": "HIMS",
+  "name": "Hims & Hers",
+  "kind": "stock",
+  "address": "0xCceE82fE024c36fA15E1005edE3E9e4787e23D09"
+ },
+ {
+  "symbol": "IBM",
+  "name": "IBM",
+  "kind": "stock",
+  "address": "0x980dcf6766FA79f5Cf0c4AAdb3ab477ff15a9619"
+ },
+ {
+  "symbol": "INTC",
+  "name": "Intel",
+  "kind": "stock",
+  "address": "0xc72b96e0E48ecd4DC75E1e45396e26300BC39681"
+ },
+ {
+  "symbol": "LLY",
+  "name": "Eli Lilly",
+  "kind": "stock",
+  "address": "0x8005d266423c7ea827372c9c864491e5786600ea"
+ },
+ {
+  "symbol": "LULU",
+  "name": "Lululemon",
+  "kind": "stock",
+  "address": "0x4e62068525Ab11FE768e29dfD00ef909B9803016"
+ },
+ {
+  "symbol": "META",
+  "name": "Meta",
+  "kind": "stock",
+  "address": "0xc0D6457C16Cc70d6790Dd43521C899C87ce02f35"
+ },
+ {
+  "symbol": "MRNA",
+  "name": "Moderna",
+  "kind": "stock",
+  "address": "0x43B07D15cE533bEc5476d70C22a78a1B2B662155"
+ },
+ {
+  "symbol": "MSFT",
+  "name": "Microsoft",
+  "kind": "stock",
+  "address": "0xe93237C50D904957Cf27E7B1133b510C669c2e74"
+ },
+ {
+  "symbol": "MSTR",
+  "name": "Strategy",
+  "kind": "stock",
+  "address": "0xec262a75e413fAfD0dF80480274532C79D42da09"
+ },
+ {
+  "symbol": "MU",
+  "name": "Micron",
+  "kind": "stock",
+  "address": "0xfF080c8ce2E5feadaCa0Da81314Ae59D232d4afD"
+ },
+ {
+  "symbol": "NET",
+  "name": "Cloudflare",
+  "kind": "stock",
+  "address": "0x116F00968269B7bfbaD4109cE591d6E74c0601d4"
+ },
+ {
+  "symbol": "NFLX",
+  "name": "Netflix",
+  "kind": "stock",
+  "address": "0xE0444EF8BF4eD74f74FD73686e2ddF4C1c5591E8"
+ },
+ {
+  "symbol": "NU",
+  "name": "Nu Holdings",
+  "kind": "stock",
+  "address": "0x408c14038a04f7bD235329E26d2bf569ee20e250"
+ },
+ {
+  "symbol": "NVDA",
+  "name": "NVIDIA",
+  "kind": "stock",
+  "address": "0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC"
+ },
+ {
+  "symbol": "ORCL",
+  "name": "Oracle",
+  "kind": "stock",
+  "address": "0xb0992820E760d836549ba69BC7598b4af75dEE03"
+ },
+ {
+  "symbol": "PLTR",
+  "name": "Palantir",
+  "kind": "stock",
+  "address": "0x894E1EC2D74FFE5AEF8Dc8A9e84686acCB964F2A"
+ },
+ {
+  "symbol": "QUBT",
+  "name": "Quantum Computing",
+  "kind": "stock",
+  "address": "0x59818904ab4cE163b3cE4FfB64f2D6Ca02c434B4"
+ },
+ {
+  "symbol": "RBLX",
+  "name": "Roblox",
+  "kind": "stock",
+  "address": "0xF0C4BF4C582cb3836e98394b1d4e7B7281101bE8"
+ },
+ {
+  "symbol": "RDDT",
+  "name": "Reddit",
+  "kind": "stock",
+  "address": "0x05b37Fb53A299a1b874A619e1c4C404D52C36F4C"
+ },
+ {
+  "symbol": "SKHY",
+  "name": "SK hynix",
+  "kind": "stock",
+  "address": "0x84CAb63bc87912E71ad199ff14A0bA45de68FeF8"
+ },
+ {
+  "symbol": "SNAP",
+  "name": "Snap",
+  "kind": "stock",
+  "address": "0xF6589F11Bc40b669e584073F428B05562F568733"
+ },
+ {
+  "symbol": "SNDK",
+  "name": "SanDisk",
+  "kind": "stock",
+  "address": "0xB90A19fF0Af67f7779afF50A882A9CfF42446400"
+ },
+ {
+  "symbol": "SOFI",
+  "name": "SoFi Technologies",
+  "kind": "stock",
+  "address": "0x98E75885157C80992A8D41b696D8c9C6Fb30A926"
+ },
+ {
+  "symbol": "SPCX",
+  "name": "SpaceX",
+  "kind": "stock",
+  "address": "0x4a0E65A3EcceC6dBe60AE065F2e7bb85Fae35eEa"
+ },
+ {
+  "symbol": "TSLA",
+  "name": "Tesla",
+  "kind": "stock",
+  "address": "0x322F0929c4625eD5bAd873c95208D54E1c003b2d"
+ },
+ {
+  "symbol": "TSM",
+  "name": "Taiwan Semiconductor",
+  "kind": "stock",
+  "address": "0x58FfE4a942d3885bAa22D7520691F611EF09e7AA"
+ },
+ {
+  "symbol": "TTWO",
+  "name": "Take-Two Interactive",
+  "kind": "stock",
+  "address": "0x5e81213613b6B86EaB4c6c50d718d34359459786"
+ },
+ {
+  "symbol": "UPS",
+  "name": "UPS",
+  "kind": "stock",
+  "address": "0xf23250dac154D05Bb671CB0d0eBEf3c635c79CE2"
+ },
+ {
+  "symbol": "USAR",
+  "name": "USA Rare Earth",
+  "kind": "stock",
+  "address": "0xd917B029C761D264c6A312BBbcDA868658eF86a6"
+ }
+]
