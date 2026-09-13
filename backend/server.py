@@ -96,6 +96,14 @@ LONGX_KEY = os.environ.get("LONGX_API_KEY") or \
     "lxyz_49534dc2febae30294149790a8152f44bf915ebbe0332213"  # 平台公开客户端 key(打包在其前端 JS)
 LONGX_INTERVAL = 300     # 秒,快照采样间隔
 LONGX_POINTS = 1500      # 每 vault 图表历史点数上限,超出按步长抽稀
+# 模拟网页端 fetch 的完整浏览器头:缺 referer/sec-fetch 易触发 Cloudflare 挑战(实测 403)
+LONGX_HEADERS = {
+    "x-api-key": LONGX_KEY,
+    "accept": "*/*",
+    "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
+    "referer": "https://app.long.xyz/longx",
+    "sec-fetch-dest": "empty", "sec-fetch-mode": "cors", "sec-fetch-site": "same-site",
+}
 
 QUERY = """
 query Board($limit: Int, $offset: Int) {
@@ -599,15 +607,24 @@ class LongXPoller(threading.Thread):
     def run(self):
         while True:
             try:
-                r = http().get(LONGX_URL, headers={"x-api-key": LONGX_KEY}, timeout=20)
-                rows = [self._metrics(v) for v in (r.json().get("vaults") or [])]
+                data = None
+                for _ in range(3):            # Cloudflare 偶发挑战,短暂重试
+                    r = http().get(LONGX_URL, headers=LONGX_HEADERS, timeout=20)
+                    if "json" in (r.headers.get("content-type") or ""):
+                        data = r.json()
+                        break
+                    time.sleep(5)
+                if data is None:
+                    raise RuntimeError(f"longx 接口连续被拦(status={r.status_code})")
+                rows = [self._metrics(v) for v in (data.get("vaults") or [])]
                 if rows:
+                    now = time.time()          # 同一轮共用一个时间戳
                     with self.owner.db_lock:
                         self.owner.con.executemany(
                             """INSERT INTO longx_hist(ts,address,ticker,name,nav,supply,tvl,cap,
                                pool_liquidity,paused,unwound) VALUES(?,?,?,?,?,?,?,?,?,?,?)
                                ON CONFLICT(address, ts) DO NOTHING""",
-                            [(time.time(),) + row for row in rows])
+                            [(now,) + row for row in rows])
                         self.owner.con.commit()
                 self.state.update(longx_at=time.strftime("%Y-%m-%d %H:%M:%S"),
                                   longx_count=len(rows), longx_error=None)
