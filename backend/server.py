@@ -90,6 +90,13 @@ NEWS_KW_EXTRA = {                              # 中文名之外补充英文别�
     "MRNA": ["Moderna"], "TSM": ["TSMC"], "CCL": ["Carnival"], "UPS": ["UPS"],
 }
 
+# ---- LongX vaults 监控:杠杆金库代币池子规模采样(app.long.xyz/longx) ----
+LONGX_URL = "https://api.long.xyz/v1/longx/vaults"
+LONGX_KEY = os.environ.get("LONGX_API_KEY") or \
+    "lxyz_49534dc2febae30294149790a8152f44bf915ebbe0332213"  # 平台公开客户端 key(打包在其前端 JS)
+LONGX_INTERVAL = 300     # 秒,快照采样间隔
+LONGX_POINTS = 1500      # 每 vault 图表历史点数上限,超出按步长抽稀
+
 QUERY = """
 query Board($limit: Int, $offset: Int) {
   assets: Asset(order_by: {asset_creation_timestamp: desc}, limit: $limit, offset: $offset) {
@@ -178,6 +185,11 @@ def init_db():
     con.execute("CREATE INDEX IF NOT EXISTS idx_rising_hist_ts ON rising_hist(ts)")
     con.execute("""CREATE TABLE IF NOT EXISTS digests(       -- 已发送的每日总结,防重发/补发依据
         day TEXT PRIMARY KEY, sent_at REAL)""")
+    con.execute("""CREATE TABLE IF NOT EXISTS longx_hist(  -- LongX vault 快照:池子增减趋势(永久保留)
+        ts REAL, address TEXT, ticker TEXT, name TEXT,
+        nav REAL, supply REAL, tvl REAL, cap REAL, pool_liquidity REAL,
+        paused INTEGER, unwound INTEGER, PRIMARY KEY(address, ts))""")
+    con.execute("CREATE INDEX IF NOT EXISTS idx_longx_ts ON longx_hist(ts)")
     con.commit()
     return con
 
@@ -561,6 +573,96 @@ class NewsPoller(threading.Thread):
 
 news_poller = NewsPoller(poller)
 news_poller.start()
+
+
+class LongXPoller(threading.Thread):
+    """LongX vaults 快照采样:每 LONGX_INTERVAL 秒拉一次 REST 落 longx_hist。
+
+    池子增减信号:supply(mint/redeem 资金进出)、cap(平台扩缩容)、
+    pool_liquidity(交易池深度);TVL=NAV×supply,cap 顶满时基本不动。
+    """
+
+    def __init__(self, owner):
+        super().__init__(daemon=True, name="longx")
+        self.owner = owner                    # 共用 Poller 的 con/db_lock
+        self.state = {"longx_at": None, "longx_count": 0, "longx_error": None}
+
+    @staticmethod
+    def _metrics(v):
+        nav = int(v.get("navPerToken") or 0) / 1e6
+        supply = int(v.get("totalSupply") or 0) / 1e18
+        return (v["address"], v.get("ticker") or v.get("symbol") or "?", v.get("name") or "",
+                nav, supply, nav * supply, int(v.get("equityCapUsdg") or 0) / 1e6,
+                int((v.get("pool") or {}).get("liquidity") or 0),
+                int(bool(v.get("paused"))), int(bool(v.get("unwound"))))
+
+    def run(self):
+        while True:
+            try:
+                r = http().get(LONGX_URL, headers={"x-api-key": LONGX_KEY}, timeout=20)
+                rows = [self._metrics(v) for v in (r.json().get("vaults") or [])]
+                if rows:
+                    with self.owner.db_lock:
+                        self.owner.con.executemany(
+                            """INSERT INTO longx_hist(ts,address,ticker,name,nav,supply,tvl,cap,
+                               pool_liquidity,paused,unwound) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+                               ON CONFLICT(address, ts) DO NOTHING""",
+                            [(time.time(),) + row for row in rows])
+                        self.owner.con.commit()
+                self.state.update(longx_at=time.strftime("%Y-%m-%d %H:%M:%S"),
+                                  longx_count=len(rows), longx_error=None)
+            except Exception as e:
+                self.state["longx_error"] = str(e)
+                traceback.print_exc()
+            time.sleep(LONGX_INTERVAL)
+
+    def snapshot(self):
+        """当前 vault 状态 + 24h 增减 + 图表历史(/api/longx 数据源)。"""
+        out = {"longx_at": self.state.get("longx_at"),
+               "longx_error": self.state.get("longx_error"),
+               "vaults": [], "history": {}, "since": None}
+        with self.owner.db_lock:
+            con = self.owner.con
+            since = con.execute("SELECT min(ts) FROM longx_hist").fetchone()[0]
+            if since is None:
+                return out                    # 尚无采样
+            out["since"] = since
+            latest = con.execute("""
+                SELECT address,ticker,name,nav,supply,tvl,cap,pool_liquidity,paused,unwound
+                FROM longx_hist h
+                WHERE ts = (SELECT max(ts) FROM longx_hist x WHERE x.address = h.address)
+            """).fetchall()
+            target = time.time() - 86400
+            for a, tick, name, nav, sup, tvl, cap, liq, pa, un in latest:
+                v = {"address": a, "ticker": tick, "name": name, "nav": nav,
+                     "supply": sup, "tvl": tvl, "cap": cap,
+                     "cap_pct": (tvl / cap * 100) if cap else None,
+                     "pool_liquidity": liq, "paused": bool(pa), "unwound": bool(un),
+                     "d24": None}
+                ref = con.execute(
+                    """SELECT tvl,supply,cap,pool_liquidity FROM longx_hist
+                       WHERE address=? ORDER BY abs(? - ts) LIMIT 1""",
+                    (a, target)).fetchone()
+                if ref:
+                    v["d24"] = {"tvl": tvl - ref[0], "supply": sup - ref[1],
+                                "cap": cap - ref[2], "pool_liquidity": liq - ref[3]}
+                out["vaults"].append(v)
+                rows = con.execute(
+                    """SELECT ts,tvl,supply,cap,pool_liquidity FROM longx_hist
+                       WHERE address=? ORDER BY ts""", (a,)).fetchall()
+                if len(rows) > LONGX_POINTS:
+                    step = -(-len(rows) // LONGX_POINTS)   # ceil 除法
+                    thinned = rows[::step]
+                    if thinned[-1] is not rows[-1]:
+                        thinned.append(rows[-1])
+                    rows = thinned
+                out["history"][a] = [list(r) for r in rows]
+        out["vaults"].sort(key=lambda v: -(v["tvl"] or 0))
+        return out
+
+
+longx_poller = LongXPoller(poller)
+longx_poller.start()
 
 
 # ---- 连续上涨监控 ----
@@ -1408,6 +1510,11 @@ def board():
 @app.get("/api/memes")
 def memes(n: str):
     return JSONResponse(poller.memes_for(n))
+
+
+@app.get("/api/longx")
+def longx():
+    return JSONResponse(longx_poller.snapshot())
 
 
 app.mount("/", StaticFiles(directory=str(ROOT / "web" / "static"), html=True), name="static")

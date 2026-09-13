@@ -26,6 +26,7 @@ longscan            # 启动;longscan log 看日志
   - **信号分层**:高换手博弈盘只归档、当日重复信号不推 TG、追高加 ⚠️ 警示、市值 ≥$2M 加 🔴 高置信标识
   - **复盘数据链**:信号后 +1/3/5/15/30/60 分钟价格回填、零点快照、`rising_hist` 永久存档;每日零点 DailyDigest 向频道推胜率复盘,TG 每小时心跳
 - **web/static/index.html** — 多列看板:10s 自动刷新、行情变动行内闪光、新币 toast 通知(可开系统通知+提示音)、🕘 通知历史面板、OKX 快捷链接
+- **web/static/longx.html** — LongX Vaults 独立板块:`LongXPoller` 每 5 分钟采样 vault 池子(TVL/supply/cap/池深度,落 `longx_hist` 永久存档),折线图看资金进出与平台扩缩容,24h 增减标注
 - **过滤规则**(`server.py` 顶部可调):只显示官方配对资产(`official.json` 白名单)、市值 ≥ $20K、24h 成交量非零
 - **API**:`/api/board`(榜单)、`/api/memes?n=<底池地址>`(某底池全部 meme)
 
